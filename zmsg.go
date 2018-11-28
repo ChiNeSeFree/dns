@@ -802,6 +802,20 @@ func (rr *NSEC3PARAM) pack(msg []byte, off int, compression compressionMap, comp
 	return headerEnd, off, nil
 }
 
+func (rr *NULL) pack(msg []byte, off int, compression map[string]int, compress bool) (int, error) {
+	off, err := rr.Hdr.pack(msg, off, compression, compress)
+	if err != nil {
+		return off, err
+	}
+	headerEnd := off
+	off, err = packStringAny(rr.Anything, msg, off)
+	if err != nil {
+		return off, err
+	}
+	rr.Header().Rdlength = uint16(off - headerEnd)
+	return off, nil
+}
+
 func (rr *OPENPGPKEY) pack(msg []byte, off int, compression compressionMap, compress bool) (int, int, error) {
 	headerEnd, off, err := rr.Hdr.pack(msg, off, compression, compress)
 	if err != nil {
@@ -2549,6 +2563,23 @@ func unpackNSEC3PARAM(h RR_Header, msg []byte, off int) (RR, int, error) {
 	return rr, off, err
 }
 
+func unpackNULL(h RR_Header, msg []byte, off int) (RR, int, error) {
+	rr := new(NULL)
+	rr.Hdr = h
+	if noRdata(h) {
+		return rr, off, nil
+	}
+	var err error
+	rdStart := off
+	_ = rdStart
+
+	rr.Anything, off, err = unpackStringAny(msg, off, rdStart+int(rr.Hdr.Rdlength))
+	if err != nil {
+		return rr, off, err
+	}
+	return rr, off, err
+}
+
 func unpackOPENPGPKEY(h RR_Header, msg []byte, off int) (RR, int, error) {
 	rr := new(OPENPGPKEY)
 	rr.Hdr = h
@@ -3448,6 +3479,7 @@ var typeToUnpack = map[uint16]func(RR_Header, []byte, int) (RR, int, error){
 	TypeNSEC:       unpackNSEC,
 	TypeNSEC3:      unpackNSEC3,
 	TypeNSEC3PARAM: unpackNSEC3PARAM,
+	TypeNULL:       unpackNULL,
 	TypeOPENPGPKEY: unpackOPENPGPKEY,
 	TypeOPT:        unpackOPT,
 	TypePTR:        unpackPTR,
