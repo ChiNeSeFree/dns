@@ -802,18 +802,16 @@ func (rr *NSEC3PARAM) pack(msg []byte, off int, compression compressionMap, comp
 	return headerEnd, off, nil
 }
 
-func (rr *NULL) pack(msg []byte, off int, compression map[string]int, compress bool) (int, error) {
-	off, err := rr.Hdr.pack(msg, off, compression, compress)
+func (rr *NULL) pack(msg []byte, off int, compression compressionMap, compress bool) (int, int, error) {
+	headerEnd, off, err := rr.Hdr.pack(msg, off, compression, compress)
 	if err != nil {
-		return off, err
+		return headerEnd, off, err
 	}
-	headerEnd := off
 	off, err = packStringAny(rr.Anything, msg, off)
 	if err != nil {
-		return off, err
+		return headerEnd, off, err
 	}
-	rr.Header().Rdlength = uint16(off - headerEnd)
-	return off, nil
+	return headerEnd, off, nil
 }
 
 func (rr *OPENPGPKEY) pack(msg []byte, off int, compression compressionMap, compress bool) (int, int, error) {
